@@ -245,6 +245,7 @@ struct Record {
     batch_all_ms: u32,         // time ot verify all proofs via batching at once
     aggregate_size_bytes: u32, // size of the aggregated proof
     batch_size_bytes: u32,     // size of the batch of proof
+    unserialize_time: u32,     // time taken to unserialize the proof
 }
 
 impl Record {
@@ -257,6 +258,7 @@ impl Record {
             acc.batch_all_ms += r.batch_all_ms;
             acc.aggregate_size_bytes += r.aggregate_size_bytes;
             acc.batch_size_bytes += r.batch_size_bytes;
+            acc.unserialize_time += r.unserialize_time;
             acc
         });
         let n = records.len() as u32;
@@ -267,12 +269,12 @@ impl Record {
         agg.batch_all_ms /= n;
         agg.aggregate_size_bytes /= n;
         agg.batch_size_bytes /= n;
+        agg.unserialize_time /= n;
         agg
     }
 }
 
 #[test]
-#[ignore]
 fn test_groth16_bench() {
     let n_average = 3; // number of times we do the benchmarking to average out results
     let nb_proofs = vec![8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
@@ -323,6 +325,7 @@ fn test_groth16_bench() {
             let start = Instant::now();
             let deserialized =
                 AggregateProof::<Bls12>::read(std::io::Cursor::new(&buffer)).unwrap();
+            let unserialize_time = start.elapsed().as_millis();
 
             let result = verify_aggregate_proof(
                 &vk,
@@ -383,6 +386,7 @@ fn test_groth16_bench() {
                 batch_verify_ms: batch_verifier_time as u32,
                 batch_size_bytes: (proof_size * i) as u32,
                 batch_all_ms: batch_all_time as u32,
+                unserialize_time: unserialize_time as u32,
             });
         }
         let average = Record::average(&records);
