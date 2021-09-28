@@ -24,12 +24,13 @@
 //!     groth16, Circuit, ConstraintSystem, SynthesisError,
 //! };
 //! use blstrs::Bls12;
+//! use ff::PrimeField;
 //! use pairing::Engine;
 //! use rand::rngs::OsRng;
 //! use sha2::{Digest, Sha256};
 //!
 //! /// Our own SHA-256d gadget. Input and output are in little-endian bit order.
-//! fn sha256d<E: Engine, CS: ConstraintSystem<E>>(
+//! fn sha256d<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
 //!     mut cs: CS,
 //!     data: &[Boolean],
 //! ) -> Result<Vec<Boolean>, SynthesisError> {
@@ -59,8 +60,8 @@
 //!     preimage: Option<[u8; 80]>,
 //! }
 //!
-//! impl<E: Engine> Circuit<E> for MyCircuit {
-//!     fn synthesize<CS: ConstraintSystem<E>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+//! impl<Scalar: PrimeField> Circuit<Scalar> for MyCircuit {
+//!     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
 //!         // Compute the values for the bits of the preimage. If we are verifying a proof,
 //!         // we still need to create the same constraints, so we return an equivalent-size
 //!         // Vec of None (indicating that the value of each bit is unknown).
@@ -120,7 +121,7 @@
 //!
 //! // Pack the hash as inputs for proof verification.
 //! let hash_bits = multipack::bytes_to_bits_le(&hash);
-//! let inputs = multipack::compute_multipacking::<Bls12>(&hash_bits);
+//! let inputs = multipack::compute_multipacking::<<Bls12 as Engine>::Fr>(&hash_bits);
 //!
 //! // Check the proof!
 //! assert!(groth16::verify_proof(&pvk, &proof, &inputs).unwrap());
