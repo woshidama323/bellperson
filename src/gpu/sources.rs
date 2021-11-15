@@ -20,7 +20,7 @@ where
     L: Limb,
 {
     [
-        ec_gpu_gen::common(),
+        //ec_gpu_gen::common(),
         ec_gpu_gen::gen_source::<E, L>(),
         //fft("Fr"),
         //multiexp("G1", "Fr"),
