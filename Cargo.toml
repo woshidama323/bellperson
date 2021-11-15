@@ -65,7 +65,8 @@ sha2 = "0.9"
 
 
 [features]
-default = ["groth16"]
+# TODO vmx 2021-11-15: remove "opencl" from default features again
+default = ["groth16", "opencl"]
 cuda = ["rust-gpu-tools/cuda", "ec-gpu", "ec-gpu-gen", "fs2", "blstrs/gpu"]
 opencl = ["rust-gpu-tools/opencl", "ec-gpu", "ec-gpu-gen", "fs2", "blstrs/gpu"]
 groth16 = []
@@ -95,3 +96,7 @@ harness = false
 members = [
   "verifier-bench"
 ]
+
+[patch.crates-io]
+#ec-gpu-gen = { path = "../ff-cl-gen/ec-gpu-gen" }
+ec-gpu-gen = { git = "https://github.com/filecoin-project/ec-gpu", branch = "wip-fft" }

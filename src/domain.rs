@@ -13,6 +13,10 @@
 
 use ff::{Field, PrimeField};
 use pairing::Engine;
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+use ec_gpu_gen::fft::FftKernel;
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+use ec_gpu_gen::GpuResult;
 
 use super::multicore::Worker;
 use super::SynthesisError;
@@ -267,9 +271,10 @@ fn best_fft<E: Engine + gpu::GpuEngine>(
     omegas: &[E::Fr],
     log_ns: &[u32],
 ) {
+    #[cfg(any(feature = "cuda", feature = "opencl"))]
     if let Some(ref mut kern) = kern {
         if kern
-            .with(|k: &mut gpu::FFTKernel<E>| gpu_fft(k, coeffs, omegas, log_ns))
+            .with(|k: &mut FftKernel<E>| gpu_fft(k, coeffs, omegas, log_ns))
             .is_ok()
         {
             return;
@@ -286,13 +291,15 @@ fn best_fft<E: Engine + gpu::GpuEngine>(
     }
 }
 
+#[cfg(any(feature = "cuda", feature = "opencl"))]
 pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
-    kern: &mut gpu::FFTKernel<E>,
+    kern: &mut FftKernel<E>,
     coeffs: &mut [&mut [E::Fr]],
     omegas: &[E::Fr],
     log_ns: &[u32],
 ) -> gpu::GPUResult<()> {
-    kern.radix_fft_many(coeffs, omegas, log_ns)
+    // TODO vmx 2021-11-15: think about where errors should live
+    kern.radix_fft_many(coeffs, omegas, log_ns).map_err(Into::into)
 }
 
 #[allow(clippy::many_single_char_names)]
@@ -514,22 +521,7 @@ fn parallel_fft_consistency() {
     test_consistency::<Bls12, _>(rng);
 }
 
-pub fn create_fft_kernel<E>(_log_d: usize, priority: bool) -> Option<gpu::FFTKernel<E>>
-where
-    E: Engine + gpu::GpuEngine,
-{
-    match gpu::FFTKernel::create(priority) {
-        Ok(k) => {
-            info!("GPU FFT kernel instantiated!");
-            Some(k)
-        }
-        Err(e) => {
-            warn!("Cannot instantiate GPU FFT kernel! Error: {}", e);
-            None
-        }
-    }
-}
-
+// TODO vmx 2021-11-15: test should be moved to ec-gpu-gen.
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 #[cfg(test)]
 mod tests {
@@ -540,6 +532,7 @@ mod tests {
     use blstrs::{Bls12, Scalar as Fr};
     use ff::Field;
     use std::time::Instant;
+    use rust_gpu_tools::Device;
 
     #[test]
     pub fn gpu_fft_consistency() {
@@ -550,7 +543,8 @@ mod tests {
 
         let worker = Worker::new();
         let log_cpus = worker.log_num_cpus();
-        let mut kern = gpu::FFTKernel::<Bls12>::create(false).expect("Cannot initialize kernel!");
+        let devices = Device::all();
+        let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
 
         for log_d in 1..=20 {
             let d = 1 << log_d;
@@ -592,7 +586,8 @@ mod tests {
 
         let worker = Worker::new();
         let log_cpus = worker.log_num_cpus();
-        let mut kern = gpu::FFTKernel::<Bls12>::create(false).expect("Cannot initialize kernel!");
+        let devices = Device::all();
+        let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
 
         for log_d in 1..=20 {
             let d = 1 << log_d;

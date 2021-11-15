@@ -5,12 +5,7 @@ use ec_gpu_gen::Limb;
 // rudandant codes (As OpenCL doesn't have generic types or templates), this module will dynamically
 // generate CUDA/OpenCL codes given different PrimeFields and curves.
 
-static FFT_SRC: &str = include_str!("fft/fft.cl");
 static MULTIEXP_SRC: &str = include_str!("multiexp/multiexp.cl");
-
-fn fft(field: &str) -> String {
-    String::from(FFT_SRC).replace("FIELD", field)
-}
 
 fn multiexp(point: &str, exp: &str) -> String {
     String::from(MULTIEXP_SRC)
@@ -26,10 +21,10 @@ where
 {
     [
         ec_gpu_gen::common(),
-        ec_gpu_gen::gen_ec_source::<E, L>(),
-        fft("Fr"),
-        multiexp("G1", "Fr"),
-        multiexp("G2", "Fr"),
+        ec_gpu_gen::gen_source::<E, L>(),
+        //fft("Fr"),
+        //multiexp("G1", "Fr"),
+        //multiexp("G2", "Fr"),
     ]
     .join("\n\n")
 }

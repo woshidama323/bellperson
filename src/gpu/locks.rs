@@ -92,10 +92,37 @@ impl Drop for PriorityLock {
 }
 
 use super::error::{GPUError, GPUResult};
-use super::fft::FFTKernel;
+//use super::fft::FFTKernel;
+use ec_gpu_gen::fft::FftKernel;
+use rust_gpu_tools::{Device};
+use crate::gpu::GpuEngine;
+use pairing::Engine;
 use super::multiexp::MultiexpKernel;
-use crate::domain::create_fft_kernel;
+//use crate::domain::create_fft_kernel;
 use crate::multiexp::create_multiexp_kernel;
+
+
+// TODO vmx 2021-11-15: Get rid of the log_d parameter
+// TODO vmx 2021-11-15: Think about how to enable the priority locking again
+fn create_fft_kernel<E>(_log_d: usize, _priority: bool) -> Option<FftKernel<E>>
+where
+   E: Engine + GpuEngine,
+{
+   //let devices = Device::all().iter().map(|device| *device.clone()).collect::<Vec<_>>();
+   //let devices = Device::all().into_iter().map(|device| device.clone()).collect::<Vec<_>>();
+   let devices = Device::all();
+   match FftKernel::create(&devices) {
+       Ok(k) => {
+           info!("GPU FFT kernel instantiated!");
+           Some(k)
+       }
+       Err(e) => {
+           warn!("Cannot instantiate GPU FFT kernel! Error: {}", e);
+           None
+       }
+   }
+}
+
 
 macro_rules! locked_kernel {
     ($class:ident, $kern:ident, $func:ident, $name:expr) => {
@@ -170,7 +197,7 @@ macro_rules! locked_kernel {
     };
 }
 
-locked_kernel!(LockedFFTKernel, FFTKernel, create_fft_kernel, "FFT");
+locked_kernel!(LockedFFTKernel, FftKernel, create_fft_kernel, "FFT");
 locked_kernel!(
     LockedMultiexpKernel,
     MultiexpKernel,

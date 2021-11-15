@@ -16,6 +16,9 @@ pub enum GPUError {
     #[cfg(any(feature = "cuda", feature = "opencl"))]
     #[error("No kernel is initialized!")]
     KernelUninitialized,
+    #[cfg(any(feature = "cuda", feature = "opencl"))]
+    #[error("EC GPU error: {0}")]
+    EcGpu(#[from] ec_gpu_gen::GpuError),
     #[error("GPU accelerator is disabled!")]
     GPUDisabled,
 }

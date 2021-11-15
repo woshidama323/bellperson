@@ -23,11 +23,11 @@ mod utils;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 pub use self::utils::*;
 
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-mod fft;
-
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-pub use self::fft::*;
+//#[cfg(any(feature = "cuda", feature = "opencl"))]
+//mod fft;
+//
+//#[cfg(any(feature = "cuda", feature = "opencl"))]
+//pub use self::fft::*;
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 mod multiexp;

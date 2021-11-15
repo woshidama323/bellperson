@@ -5,33 +5,6 @@ use group::prime::PrimeCurveAffine;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-// This module is compiled instead of `fft.rs` and `multiexp.rs` if `gpu` feature is disabled.
-#[allow(clippy::upper_case_acronyms)]
-pub struct FFTKernel<E>(PhantomData<E>)
-where
-    E: Engine;
-
-impl<E> FFTKernel<E>
-where
-    E: Engine,
-{
-    pub fn create(_: bool) -> GPUResult<FFTKernel<E>> {
-        Err(GPUError::GPUDisabled)
-    }
-
-    pub fn radix_fft(&mut self, _: &mut [E::Fr], _: &E::Fr, _: u32) -> GPUResult<()> {
-        Err(GPUError::GPUDisabled)
-    }
-    pub fn radix_fft_many(
-        &mut self,
-        _: &mut [&mut [E::Fr]],
-        _: &[E::Fr],
-        _: &[u32],
-    ) -> GPUResult<()> {
-        Err(GPUError::GPUDisabled)
-    }
-}
-
 pub struct MultiexpKernel<E>(PhantomData<E>)
 where
     E: Engine;
