@@ -14,7 +14,6 @@ use ec_gpu::GpuEngine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::multiexp::MultiexpKernel;
 
-//use super::multicore::{Waiter, Worker};
 use ec_gpu_gen::threadpool::{Waiter, Worker};
 use super::SynthesisError;
 use crate::gpu;

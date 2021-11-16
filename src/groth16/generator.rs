@@ -14,7 +14,6 @@ use ec_gpu::GpuEngine;
 use super::{Parameters, VerifyingKey};
 
 use crate::domain::EvaluationDomain;
-//use crate::multicore::Worker;
 use ec_gpu_gen::threadpool::Worker;
 use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
 

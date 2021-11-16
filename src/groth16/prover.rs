@@ -12,7 +12,6 @@ use ec_gpu::GpuEngine;
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
 use crate::gpu::{LockedFFTKernel, LockedMultiexpKernel};
-//use crate::multicore::{Worker, THREAD_POOL};
 use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 use crate::multiexp::{multiexp, DensityTracker, FullDensity};
 use crate::{

@@ -19,7 +19,6 @@ use ec_gpu_gen::fft::FftKernel;
 use ec_gpu_gen::GpuResult;
 use ec_gpu::GpuEngine;
 
-//use super::multicore::Worker;
 use ec_gpu_gen::threadpool::{Waiter, Worker};
 use super::SynthesisError;
 use crate::gpu;
