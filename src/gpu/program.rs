@@ -12,8 +12,6 @@ use rust_gpu_tools::{Device, Framework, GPUError as GpuToolsError, Program};
 #[cfg(not(all(feature = "cuda", feature = "opencl")))]
 use crate::gpu::error::GPUError;
 use crate::gpu::error::GPUResult;
-#[cfg(feature = "opencl")]
-use crate::gpu::sources;
 use crate::gpu::GpuEngine;
 use pairing::Engine;
 
@@ -78,7 +76,7 @@ where
         #[cfg(feature = "opencl")]
         Framework::Opencl => {
             info!("Using kernel on OpenCL.");
-            let src = sources::kernel::<E, Limb64>();
+            let src = ec_gpu_gen::gen_source::<E, Limb64>();
             let opencl_device = device
                 .opencl_device()
                 .ok_or(GpuToolsError::DeviceNotFound)?;

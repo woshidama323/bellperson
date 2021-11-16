@@ -11,11 +11,11 @@ pub use self::locks::*;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 mod program;
 
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-mod sources;
-
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-pub use self::sources::*;
+//#[cfg(any(feature = "cuda", feature = "opencl"))]
+//mod sources;
+//
+//#[cfg(any(feature = "cuda", feature = "opencl"))]
+//pub use self::sources::*;
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 mod utils;

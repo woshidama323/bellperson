@@ -10,10 +10,7 @@ fn main() {
     use ec_gpu_gen::Limb32;
     use sha2::{Digest, Sha256};
 
-    #[path = "src/gpu/sources.rs"]
-    mod sources;
-
-    let kernel_source = sources::kernel::<Bls12, Limb32>();
+    let kernel_source = ec_gpu_gen::gen_source::<Bls12, Limb32>();
 
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR was not set.");
 
