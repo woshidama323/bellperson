@@ -450,22 +450,6 @@ fn test_with_bls12() {
     assert_eq!(naive, fast);
 }
 
-//pub fn create_multiexp_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<gpu::MultiexpKernel<'a, E>>
-//where
-//    E: Engine + gpu::GpuEngine,
-//{
-//    match gpu::MultiexpKernel::<E>::create(priority) {
-//        Ok(k) => {
-//            info!("GPU Multiexp kernel instantiated!");
-//            Some(k)
-//        }
-//        Err(e) => {
-//            warn!("Cannot instantiate GPU Multiexp kernel! Error: {}", e);
-//            None
-//        }
-//    }
-//}
-
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 #[test]
 pub fn gpu_multiexp_consistency() {
