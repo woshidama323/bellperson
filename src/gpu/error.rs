@@ -1,3 +1,6 @@
+// TODO vmx 2021-11-16: Go over all the errors and check which ones are still applicable. Most of
+// them should be part of ec-gpu-gen.
+
 #![allow(clippy::upper_case_acronyms)]
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
