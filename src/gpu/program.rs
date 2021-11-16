@@ -12,7 +12,7 @@ use rust_gpu_tools::{Device, Framework, GPUError as GpuToolsError, Program};
 #[cfg(not(all(feature = "cuda", feature = "opencl")))]
 use crate::gpu::error::GPUError;
 use crate::gpu::error::GPUResult;
-use crate::gpu::GpuEngine;
+use ec_gpu::GpuEngine;
 use pairing::Engine;
 
 /// Selects a CUDA or OpenCL on the `BELLMAN_GPU_FRAMEWORK` environment variable and the

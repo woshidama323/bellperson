@@ -41,9 +41,9 @@ pub use self::utils::*;
 //#[cfg(not(any(feature = "cuda", feature = "opencl")))]
 //pub use self::nogpu::*;
 
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-pub use ec_gpu::GpuEngine;
-#[cfg(not(any(feature = "cuda", feature = "opencl")))]
-pub trait GpuEngine {}
-#[cfg(not(any(feature = "cuda", feature = "opencl")))]
-impl<E: pairing::Engine> GpuEngine for E {}
+//#[cfg(any(feature = "cuda", feature = "opencl"))]
+//pub use ec_gpu::GpuEngine;
+//#[cfg(not(any(feature = "cuda", feature = "opencl")))]
+//pub trait GpuEngine {}
+//#[cfg(not(any(feature = "cuda", feature = "opencl")))]
+//impl<E: pairing::Engine> GpuEngine for E {}

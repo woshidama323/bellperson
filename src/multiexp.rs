@@ -10,6 +10,7 @@ use group::{prime::PrimeCurveAffine, Group};
 use log::{info, warn};
 use pairing::Engine;
 use rayon::prelude::*;
+use ec_gpu::GpuEngine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::multiexp::MultiexpKernel;
 
@@ -359,7 +360,7 @@ where
     for<'a> &'a Q: QueryDensity,
     D: Send + Sync + 'static + Clone + AsRef<Q>,
     G: PrimeCurveAffine,
-    E: gpu::GpuEngine,
+    E: GpuEngine,
     E: Engine<Fr = G::Scalar>,
     S: SourceBuilder<G>,
 {

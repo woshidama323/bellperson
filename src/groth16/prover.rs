@@ -7,10 +7,11 @@ use group::{prime::PrimeCurveAffine, Curve};
 use pairing::MultiMillerLoop;
 use rand_core::RngCore;
 use rayon::prelude::*;
+use ec_gpu::GpuEngine;
 
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
-use crate::gpu::{self, LockedFFTKernel, LockedMultiexpKernel};
+use crate::gpu::{LockedFFTKernel, LockedMultiexpKernel};
 //use crate::multicore::{Worker, THREAD_POOL};
 use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 use crate::multiexp::{multiexp, DensityTracker, FullDensity};
@@ -225,7 +226,7 @@ pub fn create_random_proof_batch_priority<E, C, R, P: ParameterSource<E>>(
     priority: bool,
 ) -> Result<Vec<Proof<E>>, SynthesisError>
 where
-    E: gpu::GpuEngine + MultiMillerLoop,
+    E: GpuEngine + MultiMillerLoop,
     C: Circuit<E::Fr> + Send,
     R: RngCore,
 {
@@ -248,7 +249,7 @@ pub fn create_proof_batch_priority<E, C, P: ParameterSource<E>>(
     priority: bool,
 ) -> Result<Vec<Proof<E>>, SynthesisError>
 where
-    E: gpu::GpuEngine + MultiMillerLoop,
+    E: GpuEngine + MultiMillerLoop,
     C: Circuit<E::Fr> + Send,
 {
     info!("Bellperson {} is being used!", BELLMAN_VERSION);
@@ -535,7 +536,7 @@ fn execute_fft<E>(
     fft_kern: &mut Option<LockedFFTKernel<E>>,
 ) -> Result<Arc<Vec<<E::Fr as PrimeField>::Repr>>, SynthesisError>
 where
-    E: gpu::GpuEngine + MultiMillerLoop,
+    E: GpuEngine + MultiMillerLoop,
 {
     let mut a = EvaluationDomain::from_coeffs(std::mem::replace(&mut prover.a, Vec::new()))?;
     let mut b = EvaluationDomain::from_coeffs(std::mem::replace(&mut prover.b, Vec::new()))?;

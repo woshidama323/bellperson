@@ -167,7 +167,7 @@ macro_rules! locked_kernel {
         #[allow(clippy::upper_case_acronyms)]
         pub struct $class<'a, E>
         where
-            E: pairing::Engine + crate::gpu::GpuEngine,
+            E: pairing::Engine + ec_gpu::GpuEngine,
         {
             log_d: usize,
             priority: bool,
@@ -176,7 +176,7 @@ macro_rules! locked_kernel {
 
         impl<'a, E> $class<'a, E>
         where
-            E: pairing::Engine + crate::gpu::GpuEngine,
+            E: pairing::Engine + ec_gpu::GpuEngine,
         {
             pub fn new(log_d: usize, priority: bool) -> $class<'a, E> {
                 $class::<E> {

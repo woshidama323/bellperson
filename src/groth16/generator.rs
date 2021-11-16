@@ -9,11 +9,11 @@ use group::{
 };
 use pairing::{Engine, MultiMillerLoop};
 use rand_core::RngCore;
+use ec_gpu::GpuEngine;
 
 use super::{Parameters, VerifyingKey};
 
 use crate::domain::EvaluationDomain;
-use crate::gpu;
 //use crate::multicore::Worker;
 use ec_gpu_gen::threadpool::Worker;
 use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
@@ -25,7 +25,7 @@ pub fn generate_random_parameters<E, C, R>(
     rng: &mut R,
 ) -> Result<Parameters<E>, SynthesisError>
 where
-    E: gpu::GpuEngine + MultiMillerLoop,
+    E: GpuEngine + MultiMillerLoop,
     <E as Engine>::G1: WnafGroup,
     <E as Engine>::G2: WnafGroup,
     C: Circuit<E::Fr>,
@@ -195,7 +195,7 @@ pub fn generate_parameters<E, C>(
     tau: E::Fr,
 ) -> Result<Parameters<E>, SynthesisError>
 where
-    E: gpu::GpuEngine + MultiMillerLoop,
+    E: GpuEngine + MultiMillerLoop,
     <E as Engine>::G1: WnafGroup,
     <E as Engine>::G2: WnafGroup,
     C: Circuit<E::Fr>,
