@@ -35,11 +35,11 @@ pub use self::utils::*;
 //#[cfg(any(feature = "cuda", feature = "opencl"))]
 //pub use self::multiexp::*;
 
-#[cfg(not(any(feature = "cuda", feature = "opencl")))]
-mod nogpu;
-
-#[cfg(not(any(feature = "cuda", feature = "opencl")))]
-pub use self::nogpu::*;
+//#[cfg(not(any(feature = "cuda", feature = "opencl")))]
+//mod nogpu;
+//
+//#[cfg(not(any(feature = "cuda", feature = "opencl")))]
+//pub use self::nogpu::*;
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 pub use ec_gpu::GpuEngine;
