@@ -10,8 +10,11 @@ use group::{prime::PrimeCurveAffine, Group};
 use log::{info, warn};
 use pairing::Engine;
 use rayon::prelude::*;
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+use ec_gpu_gen::multiexp::MultiexpKernel;
 
-use super::multicore::{Waiter, Worker};
+//use super::multicore::{Waiter, Worker};
+use ec_gpu_gen::threadpool::{Waiter, Worker};
 use super::SynthesisError;
 use crate::gpu;
 
@@ -345,7 +348,7 @@ where
 
 /// Perform multi-exponentiation. The caller is responsible for ensuring the
 /// query size is the same as the number of exponents.
-pub fn multiexp<Q, D, G, E, S>(
+pub fn multiexp<'b, Q, D, G, E, S>(
     pool: &Worker,
     bases: S,
     density_map: D,
@@ -360,15 +363,16 @@ where
     E: Engine<Fr = G::Scalar>,
     S: SourceBuilder<G>,
 {
+    #[cfg(any(feature = "cuda", feature = "opencl"))]
     if let Some(ref mut kern) = kern {
-        if let Ok(p) = kern.with(|k: &mut gpu::MultiexpKernel<E>| {
-            let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
-            let (bss, skip) = bases.clone().get();
-            let n = exps.len();
-            k.multiexp(pool, bss, exps, skip, n)
-        }) {
-            return Waiter::done(Ok(p));
-        }
+       if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
+           let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
+           let (bss, skip) = bases.clone().get();
+           let n = exps.len();
+           k.multiexp(pool, bss, exps, skip, n).map_err(Into::into)
+       }) {
+           return Waiter::done(Ok(p));
+       }
     }
 
     let c = if exponents.len() < 32 {
@@ -446,21 +450,21 @@ fn test_with_bls12() {
     assert_eq!(naive, fast);
 }
 
-pub fn create_multiexp_kernel<E>(_log_d: usize, priority: bool) -> Option<gpu::MultiexpKernel<E>>
-where
-    E: Engine + gpu::GpuEngine,
-{
-    match gpu::MultiexpKernel::<E>::create(priority) {
-        Ok(k) => {
-            info!("GPU Multiexp kernel instantiated!");
-            Some(k)
-        }
-        Err(e) => {
-            warn!("Cannot instantiate GPU Multiexp kernel! Error: {}", e);
-            None
-        }
-    }
-}
+//pub fn create_multiexp_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<gpu::MultiexpKernel<'a, E>>
+//where
+//    E: Engine + gpu::GpuEngine,
+//{
+//    match gpu::MultiexpKernel::<E>::create(priority) {
+//        Ok(k) => {
+//            info!("GPU Multiexp kernel instantiated!");
+//            Some(k)
+//        }
+//        Err(e) => {
+//            warn!("Cannot instantiate GPU Multiexp kernel! Error: {}", e);
+//            None
+//        }
+//    }
+//}
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 #[test]

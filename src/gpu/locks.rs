@@ -95,23 +95,35 @@ use super::error::{GPUError, GPUResult};
 //use super::fft::FFTKernel;
 use ec_gpu_gen::fft::FftKernel;
 use rust_gpu_tools::{Device};
-use crate::gpu::GpuEngine;
+//use crate::gpu::GpuEngine;
+use ec_gpu::GpuEngine;
 use pairing::Engine;
-use super::multiexp::MultiexpKernel;
+//use super::multiexp::MultiexpKernel;
+use ec_gpu_gen::multiexp::MultiexpKernel;
 //use crate::domain::create_fft_kernel;
-use crate::multiexp::create_multiexp_kernel;
+//use crate::multiexp::create_multiexp_kernel;
 
 
 // TODO vmx 2021-11-15: Get rid of the log_d parameter
 // TODO vmx 2021-11-15: Think about how to enable the priority locking again
-fn create_fft_kernel<E>(_log_d: usize, _priority: bool) -> Option<FftKernel<E>>
+//fn create_fft_kernel<E>(_log_d: usize, _priority: bool) -> Option<FftKernel<E>>
+fn create_fft_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<FftKernel<'a, E>>
 where
    E: Engine + GpuEngine,
 {
    //let devices = Device::all().iter().map(|device| *device.clone()).collect::<Vec<_>>();
    //let devices = Device::all().into_iter().map(|device| device.clone()).collect::<Vec<_>>();
    let devices = Device::all();
-   match FftKernel::create(&devices) {
+   let kernel = if priority {
+       FftKernel::create_with_abort(&devices, &|| -> bool {
+           // We only supply a function in case it is high priority, hence always passing in
+           // `true`.
+           PriorityLock::should_break(true)
+       })
+   } else {
+       FftKernel::create(&devices)
+   };
+   match kernel {
        Ok(k) => {
            info!("GPU FFT kernel instantiated!");
            Some(k)
@@ -124,23 +136,49 @@ where
 }
 
 
+fn create_multiexp_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<MultiexpKernel<'a, E>>
+where
+    E: Engine + GpuEngine,
+{
+   let devices = Device::all();
+   let kernel = if priority {
+       MultiexpKernel::create_with_abort(&devices, &|| -> bool {
+           // We only supply a function in case it is high priority, hence always passing in
+           // `true`.
+           PriorityLock::should_break(true)
+       })
+   } else {
+       MultiexpKernel::create(&devices)
+   };
+   match kernel {
+        Ok(k) => {
+            info!("GPU Multiexp kernel instantiated!");
+            Some(k)
+        }
+        Err(e) => {
+            warn!("Cannot instantiate GPU Multiexp kernel! Error: {}", e);
+            None
+        }
+    }
+}
+
 macro_rules! locked_kernel {
     ($class:ident, $kern:ident, $func:ident, $name:expr) => {
         #[allow(clippy::upper_case_acronyms)]
-        pub struct $class<E>
+        pub struct $class<'a, E>
         where
             E: pairing::Engine + crate::gpu::GpuEngine,
         {
             log_d: usize,
             priority: bool,
-            kernel: Option<$kern<E>>,
+            kernel: Option<$kern<'a, E>>,
         }
 
-        impl<E> $class<E>
+        impl<'a, E> $class<'a, E>
         where
             E: pairing::Engine + crate::gpu::GpuEngine,
         {
-            pub fn new(log_d: usize, priority: bool) -> $class<E> {
+            pub fn new(log_d: usize, priority: bool) -> $class<'a, E> {
                 $class::<E> {
                     log_d,
                     priority,
@@ -199,8 +237,8 @@ macro_rules! locked_kernel {
 
 locked_kernel!(LockedFFTKernel, FftKernel, create_fft_kernel, "FFT");
 locked_kernel!(
-    LockedMultiexpKernel,
-    MultiexpKernel,
-    create_multiexp_kernel,
-    "Multiexp"
+   LockedMultiexpKernel,
+   MultiexpKernel,
+   create_multiexp_kernel,
+   "Multiexp"
 );

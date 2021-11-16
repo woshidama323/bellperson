@@ -14,7 +14,8 @@ use super::{Parameters, VerifyingKey};
 
 use crate::domain::EvaluationDomain;
 use crate::gpu;
-use crate::multicore::Worker;
+//use crate::multicore::Worker;
+use ec_gpu_gen::threadpool::Worker;
 use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
 
 /// Generates a random common reference string for

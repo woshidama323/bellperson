@@ -11,7 +11,8 @@ use rayon::prelude::*;
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
 use crate::gpu::{self, LockedFFTKernel, LockedMultiexpKernel};
-use crate::multicore::{Worker, THREAD_POOL};
+//use crate::multicore::{Worker, THREAD_POOL};
+use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 use crate::multiexp::{multiexp, DensityTracker, FullDensity};
 use crate::{
     Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable, BELLMAN_VERSION,

@@ -18,7 +18,8 @@ use ec_gpu_gen::fft::FftKernel;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::GpuResult;
 
-use super::multicore::Worker;
+//use super::multicore::Worker;
+use ec_gpu_gen::threadpool::{Waiter, Worker};
 use super::SynthesisError;
 use crate::gpu;
 
@@ -298,7 +299,8 @@ pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
     omegas: &[E::Fr],
     log_ns: &[u32],
 ) -> gpu::GPUResult<()> {
-    // TODO vmx 2021-11-15: think about where errors should live
+    // TODO vmx 2021-11-15: think about where errors should live, so that perhaps `Into::into` is
+    // not needed
     kern.radix_fft_many(coeffs, omegas, log_ns).map_err(Into::into)
 }
 
