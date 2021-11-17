@@ -5,17 +5,17 @@ use std::ops::AddAssign;
 use std::sync::Arc;
 
 use bitvec::prelude::*;
+use ec_gpu::GpuEngine;
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+use ec_gpu_gen::multiexp::MultiexpKernel;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Group};
 use pairing::Engine;
 use rayon::prelude::*;
-use ec_gpu::GpuEngine;
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-use ec_gpu_gen::multiexp::MultiexpKernel;
 
-use ec_gpu_gen::threadpool::{Waiter, Worker};
 use super::SynthesisError;
 use crate::gpu;
+use ec_gpu_gen::threadpool::{Waiter, Worker};
 
 /// An object that builds a source of bases.
 pub trait SourceBuilder<G: PrimeCurveAffine>: Send + Sync + 'static + Clone {
@@ -364,13 +364,13 @@ where
 {
     #[cfg(any(feature = "cuda", feature = "opencl"))]
     if let Some(ref mut kern) = kern {
-       if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
-           let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
-           let (bss, skip) = bases.clone().get();
-           k.multiexp(pool, bss, exps, skip).map_err(Into::into)
-       }) {
-           return Waiter::done(Ok(p));
-       }
+        if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
+            let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
+            let (bss, skip) = bases.clone().get();
+            k.multiexp(pool, bss, exps, skip).map_err(Into::into)
+        }) {
+            return Waiter::done(Ok(p));
+        }
     }
 
     let c = if exponents.len() < 32 {

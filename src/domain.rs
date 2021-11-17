@@ -11,15 +11,15 @@
 //! [`EvaluationDomain`]: crate::domain::EvaluationDomain
 //! [Groth16]: https://eprint.iacr.org/2016/260
 
-use ff::{Field, PrimeField};
-use pairing::Engine;
+use ec_gpu::GpuEngine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::fft::FftKernel;
-use ec_gpu::GpuEngine;
+use ff::{Field, PrimeField};
+use pairing::Engine;
 
-use ec_gpu_gen::threadpool::Worker;
 use super::SynthesisError;
 use crate::gpu;
+use ec_gpu_gen::threadpool::Worker;
 
 pub struct EvaluationDomain<E: Engine + GpuEngine> {
     coeffs: Vec<E::Fr>,
@@ -297,7 +297,8 @@ pub fn gpu_fft<E: Engine + GpuEngine>(
 ) -> gpu::GPUResult<()> {
     // TODO vmx 2021-11-15: think about where errors should live, so that perhaps `Into::into` is
     // not needed
-    kern.radix_fft_many(coeffs, omegas, log_ns).map_err(Into::into)
+    kern.radix_fft_many(coeffs, omegas, log_ns)
+        .map_err(Into::into)
 }
 
 #[allow(clippy::many_single_char_names)]
@@ -526,11 +527,11 @@ mod tests {
     use super::*;
 
     use crate::gpu;
-    use ec_gpu_gen::threadpool::Worker;
     use blstrs::{Bls12, Scalar as Fr};
+    use ec_gpu_gen::threadpool::Worker;
     use ff::Field;
-    use std::time::Instant;
     use rust_gpu_tools::Device;
+    use std::time::Instant;
 
     #[test]
     pub fn gpu_fft_consistency() {

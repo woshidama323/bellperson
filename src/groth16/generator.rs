@@ -2,6 +2,7 @@ use std::ops::{AddAssign, Mul, MulAssign};
 
 use std::sync::Arc;
 
+use ec_gpu::GpuEngine;
 use ff::{Field, PrimeField};
 use group::{
     prime::{PrimeCurve, PrimeCurveAffine},
@@ -9,13 +10,12 @@ use group::{
 };
 use pairing::{Engine, MultiMillerLoop};
 use rand_core::RngCore;
-use ec_gpu::GpuEngine;
 
 use super::{Parameters, VerifyingKey};
 
 use crate::domain::EvaluationDomain;
-use ec_gpu_gen::threadpool::Worker;
 use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
+use ec_gpu_gen::threadpool::Worker;
 
 /// Generates a random common reference string for
 /// a circuit.

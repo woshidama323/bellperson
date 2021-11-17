@@ -2,21 +2,21 @@ use std::ops::{AddAssign, Mul, MulAssign};
 use std::sync::Arc;
 use std::time::Instant;
 
+use ec_gpu::GpuEngine;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Curve};
 use pairing::MultiMillerLoop;
 use rand_core::RngCore;
 use rayon::prelude::*;
-use ec_gpu::GpuEngine;
 
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
 use crate::gpu::{LockedFFTKernel, LockedMultiexpKernel};
-use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 use crate::multiexp::{multiexp, DensityTracker, FullDensity};
 use crate::{
     Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable, BELLMAN_VERSION,
 };
+use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use log::trace;
 use log::{debug, info};
