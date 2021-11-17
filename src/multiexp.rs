@@ -7,7 +7,6 @@ use std::sync::Arc;
 use bitvec::prelude::*;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Group};
-use log::{info, warn};
 use pairing::Engine;
 use rayon::prelude::*;
 use ec_gpu::GpuEngine;
@@ -368,7 +367,6 @@ where
        if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
            let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
            let (bss, skip) = bases.clone().get();
-           let n = exps.len();
            k.multiexp(pool, bss, exps, skip).map_err(Into::into)
        }) {
            return Waiter::done(Ok(p));

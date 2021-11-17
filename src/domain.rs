@@ -15,16 +15,11 @@ use ff::{Field, PrimeField};
 use pairing::Engine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::fft::FftKernel;
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-use ec_gpu_gen::GpuResult;
 use ec_gpu::GpuEngine;
 
-use ec_gpu_gen::threadpool::{Waiter, Worker};
+use ec_gpu_gen::threadpool::Worker;
 use super::SynthesisError;
 use crate::gpu;
-
-
-use log::{info, warn};
 
 pub struct EvaluationDomain<E: Engine + GpuEngine> {
     coeffs: Vec<E::Fr>,

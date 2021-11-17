@@ -1,6 +1,6 @@
 use super::{create_proof_batch_priority, create_random_proof_batch_priority};
 use super::{ParameterSource, Proof};
-use crate::{gpu, Circuit, SynthesisError};
+use crate::{Circuit, SynthesisError};
 use pairing::MultiMillerLoop;
 use rand_core::RngCore;
 use ec_gpu::GpuEngine;
