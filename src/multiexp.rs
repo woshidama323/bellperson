@@ -369,7 +369,7 @@ where
            let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
            let (bss, skip) = bases.clone().get();
            let n = exps.len();
-           k.multiexp(pool, bss, exps, skip, n).map_err(Into::into)
+           k.multiexp(pool, bss, exps, skip).map_err(Into::into)
        }) {
            return Waiter::done(Ok(p));
        }
