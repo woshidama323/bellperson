@@ -62,8 +62,7 @@ hex = "0.4"
 sha2 = "0.9"
 
 [features]
-# TODO vmx 2021-11-15: remove "opencl" from default features again
-default = ["groth16", "opencl"]
+default = ["groth16"]
 cuda = ["rust-gpu-tools/cuda", "ec-gpu-gen/cuda", "fs2", "blstrs/gpu"]
 opencl = ["rust-gpu-tools/opencl", "ec-gpu-gen/opencl", "fs2", "blstrs/gpu"]
 groth16 = []
