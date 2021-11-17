@@ -531,7 +531,7 @@ mod tests {
     use super::*;
 
     use crate::gpu;
-    use crate::multicore::Worker;
+    use ec_gpu_gen::threadpool::Worker;
     use blstrs::{Bls12, Scalar as Fr};
     use ff::Field;
     use std::time::Instant;
@@ -540,7 +540,6 @@ mod tests {
     #[test]
     pub fn gpu_fft_consistency() {
         let _ = env_logger::try_init();
-        gpu::dump_device_list();
 
         let mut rng = rand::thread_rng();
 
@@ -583,7 +582,6 @@ mod tests {
     #[test]
     pub fn gpu_fft3_consistency() {
         let _ = env_logger::try_init();
-        gpu::dump_device_list();
 
         let mut rng = rand::thread_rng();
 

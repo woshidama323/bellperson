@@ -458,7 +458,6 @@ pub fn gpu_multiexp_consistency() {
     use std::time::Instant;
 
     let _ = env_logger::try_init();
-    gpu::dump_device_list();
 
     const MAX_LOG_D: usize = 16;
     const START_LOG_D: usize = 10;
