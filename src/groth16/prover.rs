@@ -2,7 +2,6 @@ use std::ops::{AddAssign, Mul, MulAssign};
 use std::sync::Arc;
 use std::time::Instant;
 
-use ec_gpu::GpuEngine;
 use ff::{Field, PrimeField};
 use group::{prime::PrimeCurveAffine, Curve};
 use pairing::MultiMillerLoop;
@@ -11,7 +10,9 @@ use rayon::prelude::*;
 
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
-use crate::gpu::{LockedFFTKernel, LockedMultiexpKernel};
+// TODO vmx 2021-11-17: I think the `nogpu` module needs to be re-introduced to make this work on
+// CPU only builds.
+use crate::gpu::{GpuEngine, LockedFFTKernel, LockedMultiexpKernel};
 use crate::multiexp::{multiexp, DensityTracker, FullDensity};
 use crate::{
     Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable, BELLMAN_VERSION,
@@ -323,7 +324,7 @@ where
         Ok(())
     })?;
 
-    let mut multiexp_kern = Some(LockedMultiexpKernel::<E>::new(log_d, priority));
+    let mut multiexp_kern = LockedMultiexpKernel::<E>::new(log_d, priority);
     let params_h = params_h.unwrap()?;
 
     let mut h_s = Vec::with_capacity(num_circuits);

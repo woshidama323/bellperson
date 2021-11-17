@@ -5,7 +5,6 @@ use std::ops::AddAssign;
 use std::sync::Arc;
 
 use bitvec::prelude::*;
-use ec_gpu::GpuEngine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::multiexp::MultiexpKernel;
 use ff::{Field, PrimeField};
@@ -347,32 +346,74 @@ where
 
 /// Perform multi-exponentiation. The caller is responsible for ensuring the
 /// query size is the same as the number of exponents.
+#[cfg(any(feature = "cuda", feature = "opencl"))]
 pub fn multiexp<'b, Q, D, G, E, S>(
     pool: &Worker,
     bases: S,
     density_map: D,
     exponents: Arc<Vec<<G::Scalar as PrimeField>::Repr>>,
-    kern: &mut Option<gpu::LockedMultiexpKernel<E>>,
+    kern: &mut gpu::LockedMultiexpKernel<E>,
 ) -> Waiter<Result<<G as PrimeCurveAffine>::Curve, SynthesisError>>
 where
     for<'a> &'a Q: QueryDensity,
     D: Send + Sync + 'static + Clone + AsRef<Q>,
     G: PrimeCurveAffine,
-    E: GpuEngine,
+    E: gpu::GpuEngine,
     E: Engine<Fr = G::Scalar>,
     S: SourceBuilder<G>,
 {
-    #[cfg(any(feature = "cuda", feature = "opencl"))]
-    if let Some(ref mut kern) = kern {
-        if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
-            let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
-            let (bss, skip) = bases.clone().get();
-            k.multiexp(pool, bss, exps, skip).map_err(Into::into)
-        }) {
-            return Waiter::done(Ok(p));
-        }
+    // Try to run on the GPU.
+    if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
+        let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
+        let (bss, skip) = bases.clone().get();
+        k.multiexp(pool, bss, exps, skip).map_err(Into::into)
+    }) {
+        return Waiter::done(Ok(p));
     }
 
+    // Fallback to the CPU in case the GPU run failed.
+    let result_cpu = multiexp_cpu::<_, _, _, E, _>(pool, bases, density_map, exponents);
+
+    // Do not give the control back to the caller till the multiexp is done. Once done the GPU
+    // might again be free, so we can run subsequent calls on the GPU instead of the CPU again.
+    let result = result_cpu.wait();
+
+    Waiter::done(result)
+}
+
+#[cfg(not(any(feature = "cuda", feature = "opencl")))]
+pub fn multiexp<'b, Q, D, G, E, S>(
+    pool: &Worker,
+    bases: S,
+    density_map: D,
+    exponents: Arc<Vec<<G::Scalar as PrimeField>::Repr>>,
+    _kern: &mut gpu::LockedMultiexpKernel<E>,
+) -> Waiter<Result<<G as PrimeCurveAffine>::Curve, SynthesisError>>
+where
+    for<'a> &'a Q: QueryDensity,
+    D: Send + Sync + 'static + Clone + AsRef<Q>,
+    G: PrimeCurveAffine,
+    E: gpu::GpuEngine,
+    E: Engine<Fr = G::Scalar>,
+    S: SourceBuilder<G>,
+{
+    multiexp_cpu::<_, _, _, E, _>(pool, bases, density_map, exponents)
+}
+
+fn multiexp_cpu<'b, Q, D, G, E, S>(
+    pool: &Worker,
+    bases: S,
+    density_map: D,
+    exponents: Arc<Vec<<G::Scalar as PrimeField>::Repr>>,
+) -> Waiter<Result<<G as PrimeCurveAffine>::Curve, SynthesisError>>
+where
+    for<'a> &'a Q: QueryDensity,
+    D: Send + Sync + 'static + Clone + AsRef<Q>,
+    G: PrimeCurveAffine,
+    E: gpu::GpuEngine,
+    E: Engine<Fr = G::Scalar>,
+    S: SourceBuilder<G>,
+{
     let c = if exponents.len() < 32 {
         3u32
     } else {
@@ -385,18 +426,7 @@ where
         assert!(query_size == exponents.len());
     }
 
-    #[allow(clippy::let_and_return)]
-    let result = pool.compute(move || multiexp_inner(bases, density_map, exponents, c));
-    #[cfg(any(feature = "cuda", feature = "opencl"))]
-    {
-        // Do not give the control back to the caller till the
-        // multiexp is done. We may want to reacquire the GPU again
-        // between the multiexps.
-        let result = result.wait();
-        Waiter::done(result)
-    }
-    #[cfg(not(any(feature = "cuda", feature = "opencl")))]
-    result
+    pool.compute(move || multiexp_inner(bases, density_map, exponents, c))
 }
 
 #[test]
@@ -439,7 +469,7 @@ fn test_with_bls12() {
     let pool = Worker::new();
 
     let v = Arc::new(v.into_iter().map(|fr| fr.to_repr()).collect());
-    let fast = multiexp::<_, _, _, Bls12, _>(&pool, (g, 0), FullDensity, v, &mut None)
+    let fast = multiexp_cpu::<_, _, _, Bls12, _>(&pool, (g, 0), FullDensity, v)
         .wait()
         .unwrap();
 
@@ -459,7 +489,7 @@ pub fn gpu_multiexp_consistency() {
 
     const MAX_LOG_D: usize = 16;
     const START_LOG_D: usize = 10;
-    let mut kern = Some(gpu::LockedMultiexpKernel::<Bls12>::new(MAX_LOG_D, false));
+    let mut kern = gpu::LockedMultiexpKernel::<Bls12>::new(MAX_LOG_D, false);
     let pool = Worker::new();
 
     let mut rng = rand::thread_rng();
@@ -488,10 +518,9 @@ pub fn gpu_multiexp_consistency() {
         println!("GPU took {}ms.", gpu_dur);
 
         now = Instant::now();
-        let cpu =
-            multiexp::<_, _, _, Bls12, _>(&pool, (g.clone(), 0), FullDensity, v.clone(), &mut None)
-                .wait()
-                .unwrap();
+        let cpu = multiexp_cpu::<_, _, _, Bls12, _>(&pool, (g.clone(), 0), FullDensity, v.clone())
+            .wait()
+            .unwrap();
         let cpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
         println!("CPU took {}ms.", cpu_dur);
 

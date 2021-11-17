@@ -2,7 +2,6 @@ use std::ops::{AddAssign, Mul, MulAssign};
 
 use std::sync::Arc;
 
-use ec_gpu::GpuEngine;
 use ff::{Field, PrimeField};
 use group::{
     prime::{PrimeCurve, PrimeCurveAffine},
@@ -14,7 +13,7 @@ use rand_core::RngCore;
 use super::{Parameters, VerifyingKey};
 
 use crate::domain::EvaluationDomain;
-use crate::{Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
+use crate::{gpu, Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable};
 use ec_gpu_gen::threadpool::Worker;
 
 /// Generates a random common reference string for
@@ -24,7 +23,7 @@ pub fn generate_random_parameters<E, C, R>(
     rng: &mut R,
 ) -> Result<Parameters<E>, SynthesisError>
 where
-    E: GpuEngine + MultiMillerLoop,
+    E: gpu::GpuEngine + MultiMillerLoop,
     <E as Engine>::G1: WnafGroup,
     <E as Engine>::G2: WnafGroup,
     C: Circuit<E::Fr>,
@@ -194,7 +193,7 @@ pub fn generate_parameters<E, C>(
     tau: E::Fr,
 ) -> Result<Parameters<E>, SynthesisError>
 where
-    E: GpuEngine + MultiMillerLoop,
+    E: gpu::GpuEngine + MultiMillerLoop,
     <E as Engine>::G1: WnafGroup,
     <E as Engine>::G2: WnafGroup,
     C: Circuit<E::Fr>,

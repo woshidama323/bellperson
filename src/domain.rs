@@ -11,7 +11,6 @@
 //! [`EvaluationDomain`]: crate::domain::EvaluationDomain
 //! [Groth16]: https://eprint.iacr.org/2016/260
 
-use ec_gpu::GpuEngine;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use ec_gpu_gen::fft::FftKernel;
 use ff::{Field, PrimeField};
@@ -21,7 +20,7 @@ use super::SynthesisError;
 use crate::gpu;
 use ec_gpu_gen::threadpool::Worker;
 
-pub struct EvaluationDomain<E: Engine + GpuEngine> {
+pub struct EvaluationDomain<E: Engine + gpu::GpuEngine> {
     coeffs: Vec<E::Fr>,
     exp: u32,
     omega: E::Fr,
@@ -30,19 +29,19 @@ pub struct EvaluationDomain<E: Engine + GpuEngine> {
     minv: E::Fr,
 }
 
-impl<E: Engine + GpuEngine> AsRef<[E::Fr]> for EvaluationDomain<E> {
+impl<E: Engine + gpu::GpuEngine> AsRef<[E::Fr]> for EvaluationDomain<E> {
     fn as_ref(&self) -> &[E::Fr] {
         &self.coeffs
     }
 }
 
-impl<E: Engine + GpuEngine> AsMut<[E::Fr]> for EvaluationDomain<E> {
+impl<E: Engine + gpu::GpuEngine> AsMut<[E::Fr]> for EvaluationDomain<E> {
     fn as_mut(&mut self) -> &mut [E::Fr] {
         &mut self.coeffs
     }
 }
 
-impl<E: Engine + GpuEngine> EvaluationDomain<E> {
+impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
     pub fn into_coeffs(self) -> Vec<E::Fr> {
         self.coeffs
     }
@@ -261,8 +260,8 @@ impl<E: Engine + GpuEngine> EvaluationDomain<E> {
     }
 }
 
-fn best_fft<E: Engine + GpuEngine>(
-    kern: &mut Option<gpu::LockedFFTKernel<E>>,
+fn best_fft<E: Engine + gpu::GpuEngine>(
+    #[allow(unused_variables)] kern: &mut Option<gpu::LockedFFTKernel<E>>,
     worker: &Worker,
     coeffs: &mut [&mut [E::Fr]],
     omegas: &[E::Fr],
@@ -289,7 +288,7 @@ fn best_fft<E: Engine + GpuEngine>(
 }
 
 #[cfg(any(feature = "cuda", feature = "opencl"))]
-pub fn gpu_fft<E: Engine + GpuEngine>(
+pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
     kern: &mut FftKernel<E>,
     coeffs: &mut [&mut [E::Fr]],
     omegas: &[E::Fr],
@@ -411,7 +410,7 @@ fn polynomial_arith() {
     use blstrs::Bls12;
     use rand_core::RngCore;
 
-    fn test_mul<E: Engine + GpuEngine, R: RngCore>(rng: &mut R) {
+    fn test_mul<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
         let worker = Worker::new();
 
         for coeffs_a in 0..70 {
@@ -456,7 +455,7 @@ fn fft_composition() {
     use pairing::Engine;
     use rand_core::RngCore;
 
-    fn test_comp<E: Engine + GpuEngine, R: RngCore>(rng: &mut R) {
+    fn test_comp<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
         let worker = Worker::new();
 
         for coeffs in 0..10 {
@@ -494,7 +493,7 @@ fn parallel_fft_consistency() {
     use rand_core::RngCore;
     use std::cmp::min;
 
-    fn test_consistency<E: Engine + GpuEngine, R: RngCore>(rng: &mut R) {
+    fn test_consistency<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
         let worker = Worker::new();
 
         for _ in 0..5 {
