@@ -525,7 +525,6 @@ fn parallel_fft_consistency() {
 mod tests {
     use super::*;
 
-    use crate::gpu;
     use blstrs::{Bls12, Scalar as Fr};
     use ec_gpu_gen::threadpool::Worker;
     use ff::Field;
