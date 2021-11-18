@@ -181,6 +181,7 @@ macro_rules! locked_kernel {
                     log_d,
                     priority,
                     kernel: None,
+                    gpu_lock: None,
                 }
             }
 
@@ -188,6 +189,7 @@ macro_rules! locked_kernel {
                 if self.kernel.is_none() {
                     PriorityLock::wait(self.priority);
                     info!("GPU is available for {}!", $name);
+                    self.gpu_lock = Some(GPULock::lock());
                     self.kernel = $func::<E>(self.log_d, self.priority);
                 }
             }
@@ -198,6 +200,7 @@ macro_rules! locked_kernel {
                         "GPU acquired by a high priority process! Freeing up {} kernels...",
                         $name
                     );
+                    self.gpu_lock.take();
                 }
             }
 
