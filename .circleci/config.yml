@@ -112,6 +112,9 @@ jobs:
       RUST_LOG: debug
     steps:
       - set-env-path
+      # TODO vmx 2021-11-18: For some reason the tests now need opencl to be installed. For now
+      # install it as a workaround. Make it work again without installing those deps.
+      - install-gpu-deps
       - *restore-workspace
       - *restore-cache
       - run:
