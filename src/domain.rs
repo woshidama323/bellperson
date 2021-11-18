@@ -540,6 +540,8 @@ mod tests {
         let worker = Worker::new();
         let log_cpus = worker.log_num_cpus();
         let devices = Device::all();
+        // Make sure there's only on kernel running at a time
+        let _lock = gpu::GPULock::lock();
         let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
 
         for log_d in 1..=20 {
@@ -582,6 +584,8 @@ mod tests {
         let worker = Worker::new();
         let log_cpus = worker.log_num_cpus();
         let devices = Device::all();
+        // Make sure there's only on kernel running at a time
+        let _lock = gpu::GPULock::lock();
         let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
 
         for log_d in 1..=20 {

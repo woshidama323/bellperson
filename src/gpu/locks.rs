@@ -170,6 +170,9 @@ macro_rules! locked_kernel {
             log_d: usize,
             priority: bool,
             kernel: Option<$kern<'a, E>>,
+            // There should always be only one thing running on the GPU, hence create a
+            // lock. It is set when a kernel is initiallized and released when the kernel is freed.
+            gpu_lock: Option<GPULock>,
         }
 
         impl<'a, E> $class<'a, E>
