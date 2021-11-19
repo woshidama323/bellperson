@@ -388,6 +388,7 @@ fn fft_composition() {
 #[test]
 fn parallel_fft_consistency() {
     use blstrs::Bls12;
+    use ec_gpu_gen::fft_cpu;
     use rand_core::RngCore;
     use std::cmp::min;
 
@@ -403,8 +404,8 @@ fn parallel_fft_consistency() {
                 let mut v2 = EvaluationDomain::<E>::from_coeffs(v1.coeffs.clone()).unwrap();
 
                 for log_cpus in log_d..min(log_d + 1, 3) {
-                    parallel_fft::<E>(&mut v1.coeffs, &worker, &v1.omega, log_d, log_cpus);
-                    serial_fft::<E>(&mut v2.coeffs, &v2.omega, log_d);
+                    fft_cpu::parallel_fft::<E>(&mut v1.coeffs, &worker, &v1.omega, log_d, log_cpus);
+                    fft_cpu::serial_fft::<E>(&mut v2.coeffs, &v2.omega, log_d);
 
                     assert!(v1.coeffs == v2.coeffs);
                 }
