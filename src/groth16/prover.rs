@@ -10,13 +10,12 @@ use rayon::prelude::*;
 
 use super::{ParameterSource, Proof};
 use crate::domain::EvaluationDomain;
-// TODO vmx 2021-11-17: I think the `nogpu` module needs to be re-introduced to make this work on
-// CPU only builds.
 use crate::gpu::{GpuEngine, LockedFFTKernel, LockedMultiexpKernel};
-use crate::multiexp::{multiexp, DensityTracker, FullDensity};
+use crate::multiexp::multiexp;
 use crate::{
     Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable, BELLMAN_VERSION,
 };
+use ec_gpu_gen::multiexp_cpu::{DensityTracker, FullDensity};
 use ec_gpu_gen::threadpool::{Worker, THREAD_POOL};
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use log::trace;
