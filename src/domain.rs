@@ -425,6 +425,7 @@ mod tests {
     use super::*;
 
     use blstrs::{Bls12, Scalar as Fr};
+    use ec_gpu_gen::fft_cpu;
     use ec_gpu_gen::threadpool::Worker;
     use ff::Field;
     use rust_gpu_tools::Device;
@@ -460,9 +461,9 @@ mod tests {
 
             now = Instant::now();
             if log_d <= log_cpus {
-                serial_fft::<Bls12>(&mut v2.coeffs, &v2.omega, log_d);
+                fft_cpu::serial_fft::<Bls12>(&mut v2.coeffs, &v2.omega, log_d);
             } else {
-                parallel_fft::<Bls12>(&mut v2.coeffs, &worker, &v2.omega, log_d, log_cpus);
+                fft_cpu::parallel_fft::<Bls12>(&mut v2.coeffs, &worker, &v2.omega, log_d, log_cpus);
             }
             let cpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
             println!("CPU ({} cores) took {}ms.", 1 << log_cpus, cpu_dur);
@@ -516,13 +517,31 @@ mod tests {
 
             now = Instant::now();
             if log_d <= log_cpus {
-                serial_fft::<Bls12>(&mut v21.coeffs, &v21.omega, log_d);
-                serial_fft::<Bls12>(&mut v22.coeffs, &v22.omega, log_d);
-                serial_fft::<Bls12>(&mut v23.coeffs, &v23.omega, log_d);
+                fft_cpu::serial_fft::<Bls12>(&mut v21.coeffs, &v21.omega, log_d);
+                fft_cpu::serial_fft::<Bls12>(&mut v22.coeffs, &v22.omega, log_d);
+                fft_cpu::serial_fft::<Bls12>(&mut v23.coeffs, &v23.omega, log_d);
             } else {
-                parallel_fft::<Bls12>(&mut v21.coeffs, &worker, &v21.omega, log_d, log_cpus);
-                parallel_fft::<Bls12>(&mut v22.coeffs, &worker, &v22.omega, log_d, log_cpus);
-                parallel_fft::<Bls12>(&mut v23.coeffs, &worker, &v23.omega, log_d, log_cpus);
+                fft_cpu::parallel_fft::<Bls12>(
+                    &mut v21.coeffs,
+                    &worker,
+                    &v21.omega,
+                    log_d,
+                    log_cpus,
+                );
+                fft_cpu::parallel_fft::<Bls12>(
+                    &mut v22.coeffs,
+                    &worker,
+                    &v22.omega,
+                    log_d,
+                    log_cpus,
+                );
+                fft_cpu::parallel_fft::<Bls12>(
+                    &mut v23.coeffs,
+                    &worker,
+                    &v23.omega,
+                    log_d,
+                    log_cpus,
+                );
             }
             let cpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
             println!("CPU ({} cores) took {}ms.", 1 << log_cpus, cpu_dur);
