@@ -8,6 +8,12 @@ mod locks;
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 pub use self::locks::*;
 
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+mod multiexp;
+
+#[cfg(any(feature = "cuda", feature = "opencl"))]
+pub use self::multiexp::CpuGpuMultiexpKernel;
+
 #[cfg(not(any(feature = "cuda", feature = "opencl")))]
 mod nogpu;
 

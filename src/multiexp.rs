@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use ec_gpu_gen::error::EcError;
-#[cfg(any(feature = "cuda", feature = "opencl"))]
-use ec_gpu_gen::multiexp::MultiexpKernel;
 use ec_gpu_gen::multiexp_cpu::{multiexp_cpu, QueryDensity, SourceBuilder};
 use ec_gpu_gen::threadpool::{Waiter, Worker};
 use ff::PrimeField;
@@ -30,7 +28,7 @@ where
     S: SourceBuilder<G>,
 {
     // Try to run on the GPU.
-    if let Ok(p) = kern.with(|k: &mut MultiexpKernel<E>| {
+    if let Ok(p) = kern.with(|k: &mut gpu::CpuGpuMultiexpKernel<E>| {
         let exps = density_map.as_ref().generate_exps::<E>(exponents.clone());
         let (bss, skip) = bases.clone().get();
         k.multiexp(pool, bss, exps, skip).map_err(Into::into)

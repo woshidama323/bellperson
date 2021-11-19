@@ -99,7 +99,8 @@ use rust_gpu_tools::Device;
 use ec_gpu::GpuEngine;
 use pairing::Engine;
 //use super::multiexp::MultiexpKernel;
-use ec_gpu_gen::multiexp::MultiexpKernel;
+//use ec_gpu_gen::multiexp::MultiexpKernel;
+use crate::gpu::CpuGpuMultiexpKernel;
 //use crate::domain::create_fft_kernel;
 //use crate::multiexp::create_multiexp_kernel;
 
@@ -134,19 +135,22 @@ where
     }
 }
 
-fn create_multiexp_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<MultiexpKernel<'a, E>>
+fn create_multiexp_kernel<'a, E>(
+    _log_d: usize,
+    priority: bool,
+) -> Option<CpuGpuMultiexpKernel<'a, E>>
 where
     E: Engine + GpuEngine,
 {
     let devices = Device::all();
     let kernel = if priority {
-        MultiexpKernel::create_with_abort(&devices, &|| -> bool {
+        CpuGpuMultiexpKernel::create_with_abort(&devices, &|| -> bool {
             // We only supply a function in case it is high priority, hence always passing in
             // `true`.
             PriorityLock::should_break(true)
         })
     } else {
-        MultiexpKernel::create(&devices)
+        CpuGpuMultiexpKernel::create(&devices)
     };
     match kernel {
         Ok(k) => {
@@ -242,7 +246,7 @@ macro_rules! locked_kernel {
 locked_kernel!(LockedFFTKernel, FftKernel, create_fft_kernel, "FFT");
 locked_kernel!(
     LockedMultiexpKernel,
-    MultiexpKernel,
+    CpuGpuMultiexpKernel,
     create_multiexp_kernel,
     "Multiexp"
 );
