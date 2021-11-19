@@ -18,6 +18,7 @@ use pairing::Engine;
 
 use super::SynthesisError;
 use crate::gpu;
+use ec_gpu_gen::fft_cpu;
 use ec_gpu_gen::threadpool::Worker;
 
 pub struct EvaluationDomain<E: Engine + gpu::GpuEngine> {
@@ -280,9 +281,9 @@ fn best_fft<E: Engine + gpu::GpuEngine>(
     let log_cpus = worker.log_num_cpus();
     for ((a, omega), log_n) in coeffs.iter_mut().zip(omegas.iter()).zip(log_ns.iter()) {
         if *log_n <= log_cpus {
-            serial_fft::<E>(*a, omega, *log_n);
+            fft_cpu::serial_fft::<E>(*a, omega, *log_n);
         } else {
-            parallel_fft::<E>(*a, worker, omega, *log_n, log_cpus);
+            fft_cpu::parallel_fft::<E>(*a, worker, omega, *log_n, log_cpus);
         }
     }
 }
@@ -298,109 +299,6 @@ pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
     // not needed
     kern.radix_fft_many(coeffs, omegas, log_ns)
         .map_err(Into::into)
-}
-
-#[allow(clippy::many_single_char_names)]
-pub fn serial_fft<E: Engine>(a: &mut [E::Fr], omega: &E::Fr, log_n: u32) {
-    fn bitreverse(mut n: u32, l: u32) -> u32 {
-        let mut r = 0;
-        for _ in 0..l {
-            r = (r << 1) | (n & 1);
-            n >>= 1;
-        }
-        r
-    }
-
-    let n = a.len() as u32;
-    assert_eq!(n, 1 << log_n);
-
-    for k in 0..n {
-        let rk = bitreverse(k, log_n);
-        if k < rk {
-            a.swap(rk as usize, k as usize);
-        }
-    }
-
-    let mut m = 1;
-    for _ in 0..log_n {
-        let w_m = omega.pow_vartime(&[u64::from(n / (2 * m))]);
-
-        let mut k = 0;
-        while k < n {
-            let mut w = E::Fr::one();
-            for j in 0..m {
-                let mut t = a[(k + j + m) as usize];
-                t *= w;
-                let mut tmp = a[(k + j) as usize];
-                tmp -= t;
-                a[(k + j + m) as usize] = tmp;
-                a[(k + j) as usize] += t;
-                w *= w_m;
-            }
-
-            k += 2 * m;
-        }
-
-        m *= 2;
-    }
-}
-
-fn parallel_fft<E: Engine>(
-    a: &mut [E::Fr],
-    worker: &Worker,
-    omega: &E::Fr,
-    log_n: u32,
-    log_cpus: u32,
-) {
-    assert!(log_n >= log_cpus);
-
-    let num_cpus = 1 << log_cpus;
-    let log_new_n = log_n - log_cpus;
-    let mut tmp = vec![vec![E::Fr::zero(); 1 << log_new_n]; num_cpus];
-    let new_omega = omega.pow_vartime(&[num_cpus as u64]);
-
-    worker.scope(0, |scope, _| {
-        let a = &*a;
-
-        for (j, tmp) in tmp.iter_mut().enumerate() {
-            scope.execute(move || {
-                // Shuffle into a sub-FFT
-                let omega_j = omega.pow_vartime(&[j as u64]);
-                let omega_step = omega.pow_vartime(&[(j as u64) << log_new_n]);
-
-                let mut elt = E::Fr::one();
-                for (i, tmp) in tmp.iter_mut().enumerate() {
-                    for s in 0..num_cpus {
-                        let idx = (i + (s << log_new_n)) % (1 << log_n);
-                        let mut t = a[idx];
-                        t *= elt;
-                        *tmp += t;
-                        elt *= omega_step;
-                    }
-                    elt *= omega_j;
-                }
-
-                // Perform sub-FFT
-                serial_fft::<E>(tmp, &new_omega, log_new_n);
-            });
-        }
-    });
-
-    // TODO: does this hurt or help?
-    worker.scope(a.len(), |scope, chunk| {
-        let tmp = &tmp;
-
-        for (idx, a) in a.chunks_mut(chunk).enumerate() {
-            scope.execute(move || {
-                let mut idx = idx * chunk;
-                let mask = (1 << log_cpus) - 1;
-                for a in a {
-                    *a = tmp[idx & mask][idx >> log_cpus];
-                    idx += 1;
-                }
-            });
-        }
-    });
 }
 
 // Test multiplying various (low degree) polynomials together and
