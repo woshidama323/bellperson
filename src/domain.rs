@@ -83,7 +83,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         &mut self,
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         best_fft::<E>(
             kern,
             worker,
@@ -99,7 +99,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         domains: &mut [&mut Self],
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         let (mut coeffs, rest): (Vec<_>, Vec<_>) = domains
             .iter_mut()
             .map(|domain| (&mut domain.coeffs[..], (domain.omega, domain.exp)))
@@ -114,7 +114,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         &mut self,
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         Self::ifft_many(&mut [self], worker, kern)
     }
 
@@ -123,7 +123,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         domains: &mut [&mut Self],
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         let (mut coeffs, rest): (Vec<_>, Vec<_>) = domains
             .iter_mut()
             .map(|domain| (&mut domain.coeffs[..], (domain.omegainv, domain.exp)))
@@ -167,7 +167,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         &mut self,
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         Self::coset_fft_many(&mut [self], worker, kern)
     }
 
@@ -176,7 +176,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         domains: &mut [&mut Self],
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         for domain in domains.iter_mut() {
             domain.distribute_powers(worker, E::Fr::multiplicative_generator());
         }
@@ -190,7 +190,7 @@ impl<E: Engine + gpu::GpuEngine> EvaluationDomain<E> {
         &mut self,
         worker: &Worker,
         kern: &mut Option<gpu::LockedFFTKernel<E>>,
-    ) -> gpu::GPUResult<()> {
+    ) -> gpu::GpuResult<()> {
         let geninv = self.geninv;
         self.ifft(worker, kern)?;
         self.distribute_powers(worker, geninv);
@@ -293,7 +293,7 @@ pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
     coeffs: &mut [&mut [E::Fr]],
     omegas: &[E::Fr],
     log_ns: &[u32],
-) -> gpu::GPUResult<()> {
+) -> gpu::GpuResult<()> {
     // TODO vmx 2021-11-15: think about where errors should live, so that perhaps `Into::into` is
     // not needed
     kern.radix_fft_many(coeffs, omegas, log_ns)

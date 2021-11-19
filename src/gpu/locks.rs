@@ -91,7 +91,7 @@ impl Drop for PriorityLock {
     }
 }
 
-use super::error::{GPUError, GPUResult};
+use super::error::{GpuError, GpuResult};
 //use super::fft::FFTKernel;
 use ec_gpu_gen::fft::FftKernel;
 use rust_gpu_tools::Device;
@@ -207,12 +207,12 @@ macro_rules! locked_kernel {
                 }
             }
 
-            pub fn with<F, R>(&mut self, mut f: F) -> GPUResult<R>
+            pub fn with<F, R>(&mut self, mut f: F) -> GpuResult<R>
             where
-                F: FnMut(&mut $kern<E>) -> GPUResult<R>,
+                F: FnMut(&mut $kern<E>) -> GpuResult<R>,
             {
                 if std::env::var("BELLMAN_NO_GPU").is_ok() {
-                    return Err(GPUError::GPUDisabled);
+                    return Err(GpuError::GpuDisabled);
                 }
 
                 self.init();
@@ -220,7 +220,7 @@ macro_rules! locked_kernel {
                 loop {
                     if let Some(ref mut k) = self.kernel {
                         match f(k) {
-                            Err(GPUError::GPUTaken) => {
+                            Err(GpuError::GpuTaken) => {
                                 self.free();
                                 self.init();
                             }
@@ -231,7 +231,7 @@ macro_rules! locked_kernel {
                             Ok(v) => return Ok(v),
                         }
                     } else {
-                        return Err(GPUError::KernelUninitialized);
+                        return Err(GpuError::KernelUninitialized);
                     }
                 }
             }
