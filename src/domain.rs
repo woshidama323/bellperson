@@ -301,258 +301,91 @@ pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
         .map_err(Into::into)
 }
 
-// Test multiplying various (low degree) polynomials together and
-// comparing with naive evaluations.
-#[test]
-fn polynomial_arith() {
-    use blstrs::Bls12;
-    use rand_core::RngCore;
-
-    fn test_mul<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
-        let worker = Worker::new();
-
-        for coeffs_a in 0..70 {
-            for coeffs_b in 0..70 {
-                let mut a: Vec<_> = (0..coeffs_a).map(|_| E::Fr::random(&mut *rng)).collect();
-                let mut b: Vec<_> = (0..coeffs_b).map(|_| E::Fr::random(&mut *rng)).collect();
-
-                // naive evaluation
-                let mut naive = vec![E::Fr::zero(); coeffs_a + coeffs_b];
-                for (i1, a) in a.iter().enumerate() {
-                    for (i2, b) in b.iter().enumerate() {
-                        naive[i1 + i2] += *a * b;
-                    }
-                }
-
-                a.resize(coeffs_a + coeffs_b, E::Fr::zero());
-                b.resize(coeffs_a + coeffs_b, E::Fr::zero());
-
-                let mut a = EvaluationDomain::<E>::from_coeffs(a).unwrap();
-                let mut b = EvaluationDomain::<E>::from_coeffs(b).unwrap();
-
-                a.fft(&worker, &mut None).unwrap();
-                b.fft(&worker, &mut None).unwrap();
-                a.mul_assign(&worker, &b);
-                a.ifft(&worker, &mut None).unwrap();
-
-                for (naive, fft) in naive.iter().zip(a.coeffs.iter()) {
-                    assert!(naive == fft);
-                }
-            }
-        }
-    }
-
-    let rng = &mut rand::thread_rng();
-
-    test_mul::<Bls12, _>(rng);
-}
-
-#[test]
-fn fft_composition() {
-    use blstrs::Bls12;
-    use pairing::Engine;
-    use rand_core::RngCore;
-
-    fn test_comp<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
-        let worker = Worker::new();
-
-        for coeffs in 0..10 {
-            let coeffs = 1 << coeffs;
-
-            let mut v = vec![];
-            for _ in 0..coeffs {
-                v.push(E::Fr::random(&mut *rng));
-            }
-
-            let mut domain = EvaluationDomain::<E>::from_coeffs(v.clone()).unwrap();
-            domain.ifft(&worker, &mut None).unwrap();
-            domain.fft(&worker, &mut None).unwrap();
-            assert!(v == domain.coeffs);
-            domain.fft(&worker, &mut None).unwrap();
-            domain.ifft(&worker, &mut None).unwrap();
-            assert!(v == domain.coeffs);
-            domain.icoset_fft(&worker, &mut None).unwrap();
-            domain.coset_fft(&worker, &mut None).unwrap();
-            assert!(v == domain.coeffs);
-            domain.coset_fft(&worker, &mut None).unwrap();
-            domain.icoset_fft(&worker, &mut None).unwrap();
-            assert!(v == domain.coeffs);
-        }
-    }
-
-    let rng = &mut rand::thread_rng();
-
-    test_comp::<Bls12, _>(rng);
-}
-
-#[test]
-fn parallel_fft_consistency() {
-    use blstrs::Bls12;
-    use ec_gpu_gen::fft_cpu;
-    use rand_core::RngCore;
-    use std::cmp::min;
-
-    fn test_consistency<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
-        let worker = Worker::new();
-
-        for _ in 0..5 {
-            for log_d in 0..10 {
-                let d = 1 << log_d;
-
-                let v1 = (0..d).map(|_| E::Fr::random(&mut *rng)).collect::<Vec<_>>();
-                let mut v1 = EvaluationDomain::<E>::from_coeffs(v1).unwrap();
-                let mut v2 = EvaluationDomain::<E>::from_coeffs(v1.coeffs.clone()).unwrap();
-
-                for log_cpus in log_d..min(log_d + 1, 3) {
-                    fft_cpu::parallel_fft::<E>(&mut v1.coeffs, &worker, &v1.omega, log_d, log_cpus);
-                    fft_cpu::serial_fft::<E>(&mut v2.coeffs, &v2.omega, log_d);
-
-                    assert!(v1.coeffs == v2.coeffs);
-                }
-            }
-        }
-    }
-
-    let rng = &mut rand::thread_rng();
-
-    test_consistency::<Bls12, _>(rng);
-}
-
-// TODO vmx 2021-11-15: test should be moved to ec-gpu-gen.
-#[cfg(any(feature = "cuda", feature = "opencl"))]
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use blstrs::{Bls12, Scalar as Fr};
-    use ec_gpu_gen::fft_cpu;
-    use ec_gpu_gen::threadpool::Worker;
-    use ff::Field;
-    use rust_gpu_tools::Device;
-    use std::time::Instant;
-
+    // Test multiplying various (low degree) polynomials together and
+    // comparing with naive evaluations.
     #[test]
-    pub fn gpu_fft_consistency() {
-        let _ = env_logger::try_init();
+    fn polynomial_arith() {
+        use blstrs::Bls12;
+        use rand_core::RngCore;
 
-        let mut rng = rand::thread_rng();
+        fn test_mul<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
+            let worker = Worker::new();
 
-        let worker = Worker::new();
-        let log_cpus = worker.log_num_cpus();
-        let devices = Device::all();
-        // Make sure there's only on kernel running at a time
-        let _lock = gpu::GPULock::lock();
-        let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
+            for coeffs_a in 0..70 {
+                for coeffs_b in 0..70 {
+                    let mut a: Vec<_> = (0..coeffs_a).map(|_| E::Fr::random(&mut *rng)).collect();
+                    let mut b: Vec<_> = (0..coeffs_b).map(|_| E::Fr::random(&mut *rng)).collect();
 
-        for log_d in 1..=20 {
-            let d = 1 << log_d;
+                    // naive evaluation
+                    let mut naive = vec![E::Fr::zero(); coeffs_a + coeffs_b];
+                    for (i1, a) in a.iter().enumerate() {
+                        for (i2, b) in b.iter().enumerate() {
+                            naive[i1 + i2] += *a * b;
+                        }
+                    }
 
-            let elems = (0..d).map(|_| Fr::random(&mut rng)).collect::<Vec<_>>();
-            let mut v1 = EvaluationDomain::<Bls12>::from_coeffs(elems.clone()).unwrap();
-            let mut v2 = EvaluationDomain::<Bls12>::from_coeffs(elems.clone()).unwrap();
+                    a.resize(coeffs_a + coeffs_b, E::Fr::zero());
+                    b.resize(coeffs_a + coeffs_b, E::Fr::zero());
 
-            println!("Testing FFT for {} elements...", d);
+                    let mut a = EvaluationDomain::<E>::from_coeffs(a).unwrap();
+                    let mut b = EvaluationDomain::<E>::from_coeffs(b).unwrap();
 
-            let mut now = Instant::now();
-            gpu_fft(&mut kern, &mut [&mut v1.coeffs], &[v1.omega], &[log_d])
-                .expect("GPU FFT failed!");
-            let gpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
-            println!("GPU took {}ms.", gpu_dur);
+                    a.fft(&worker, &mut None).unwrap();
+                    b.fft(&worker, &mut None).unwrap();
+                    a.mul_assign(&worker, &b);
+                    a.ifft(&worker, &mut None).unwrap();
 
-            now = Instant::now();
-            if log_d <= log_cpus {
-                fft_cpu::serial_fft::<Bls12>(&mut v2.coeffs, &v2.omega, log_d);
-            } else {
-                fft_cpu::parallel_fft::<Bls12>(&mut v2.coeffs, &worker, &v2.omega, log_d, log_cpus);
+                    for (naive, fft) in naive.iter().zip(a.coeffs.iter()) {
+                        assert!(naive == fft);
+                    }
+                }
             }
-            let cpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
-            println!("CPU ({} cores) took {}ms.", 1 << log_cpus, cpu_dur);
-
-            println!("Speedup: x{}", cpu_dur as f32 / gpu_dur as f32);
-
-            assert!(v1.coeffs == v2.coeffs);
-            println!("============================");
         }
+
+        let rng = &mut rand::thread_rng();
+
+        test_mul::<Bls12, _>(rng);
     }
 
     #[test]
-    pub fn gpu_fft3_consistency() {
-        let _ = env_logger::try_init();
+    fn fft_composition() {
+        use blstrs::Bls12;
+        use pairing::Engine;
+        use rand_core::RngCore;
 
-        let mut rng = rand::thread_rng();
+        fn test_comp<E: Engine + gpu::GpuEngine, R: RngCore>(rng: &mut R) {
+            let worker = Worker::new();
 
-        let worker = Worker::new();
-        let log_cpus = worker.log_num_cpus();
-        let devices = Device::all();
-        // Make sure there's only on kernel running at a time
-        let _lock = gpu::GPULock::lock();
-        let mut kern = FftKernel::<Bls12>::create(&devices).expect("Cannot initialize kernel!");
+            for coeffs in 0..10 {
+                let coeffs = 1 << coeffs;
 
-        for log_d in 1..=20 {
-            let d = 1 << log_d;
+                let mut v = vec![];
+                for _ in 0..coeffs {
+                    v.push(E::Fr::random(&mut *rng));
+                }
 
-            let elems1 = (0..d).map(|_| Fr::random(&mut rng)).collect::<Vec<_>>();
-            let elems2 = (0..d).map(|_| Fr::random(&mut rng)).collect::<Vec<_>>();
-            let elems3 = (0..d).map(|_| Fr::random(&mut rng)).collect::<Vec<_>>();
-
-            let mut v11 = EvaluationDomain::<Bls12>::from_coeffs(elems1.clone()).unwrap();
-            let mut v12 = EvaluationDomain::<Bls12>::from_coeffs(elems2.clone()).unwrap();
-            let mut v13 = EvaluationDomain::<Bls12>::from_coeffs(elems3.clone()).unwrap();
-            let mut v21 = EvaluationDomain::<Bls12>::from_coeffs(elems1.clone()).unwrap();
-            let mut v22 = EvaluationDomain::<Bls12>::from_coeffs(elems2.clone()).unwrap();
-            let mut v23 = EvaluationDomain::<Bls12>::from_coeffs(elems3.clone()).unwrap();
-
-            println!("Testing FFT3 for {} elements...", d);
-
-            let mut now = Instant::now();
-            gpu_fft(
-                &mut kern,
-                &mut [&mut v11.coeffs, &mut v12.coeffs, &mut v13.coeffs],
-                &[v11.omega, v12.omega, v13.omega],
-                &[log_d, log_d, log_d],
-            )
-            .expect("GPU FFT failed!");
-            let gpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
-            println!("GPU took {}ms.", gpu_dur);
-
-            now = Instant::now();
-            if log_d <= log_cpus {
-                fft_cpu::serial_fft::<Bls12>(&mut v21.coeffs, &v21.omega, log_d);
-                fft_cpu::serial_fft::<Bls12>(&mut v22.coeffs, &v22.omega, log_d);
-                fft_cpu::serial_fft::<Bls12>(&mut v23.coeffs, &v23.omega, log_d);
-            } else {
-                fft_cpu::parallel_fft::<Bls12>(
-                    &mut v21.coeffs,
-                    &worker,
-                    &v21.omega,
-                    log_d,
-                    log_cpus,
-                );
-                fft_cpu::parallel_fft::<Bls12>(
-                    &mut v22.coeffs,
-                    &worker,
-                    &v22.omega,
-                    log_d,
-                    log_cpus,
-                );
-                fft_cpu::parallel_fft::<Bls12>(
-                    &mut v23.coeffs,
-                    &worker,
-                    &v23.omega,
-                    log_d,
-                    log_cpus,
-                );
+                let mut domain = EvaluationDomain::<E>::from_coeffs(v.clone()).unwrap();
+                domain.ifft(&worker, &mut None).unwrap();
+                domain.fft(&worker, &mut None).unwrap();
+                assert!(v == domain.coeffs);
+                domain.fft(&worker, &mut None).unwrap();
+                domain.ifft(&worker, &mut None).unwrap();
+                assert!(v == domain.coeffs);
+                domain.icoset_fft(&worker, &mut None).unwrap();
+                domain.coset_fft(&worker, &mut None).unwrap();
+                assert!(v == domain.coeffs);
+                domain.coset_fft(&worker, &mut None).unwrap();
+                domain.icoset_fft(&worker, &mut None).unwrap();
+                assert!(v == domain.coeffs);
             }
-            let cpu_dur = now.elapsed().as_secs() * 1000 + now.elapsed().subsec_millis() as u64;
-            println!("CPU ({} cores) took {}ms.", 1 << log_cpus, cpu_dur);
-
-            println!("Speedup: x{}", cpu_dur as f32 / gpu_dur as f32);
-
-            assert!(v11.coeffs == v21.coeffs);
-            assert!(v12.coeffs == v22.coeffs);
-            assert!(v13.coeffs == v23.coeffs);
-
-            println!("============================");
         }
+
+        let rng = &mut rand::thread_rng();
+
+        test_comp::<Bls12, _>(rng);
     }
 }
