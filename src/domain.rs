@@ -278,7 +278,7 @@ fn best_fft<E: Engine + gpu::GpuEngine>(
         }
     }
 
-    let log_cpus = worker.log_num_cpus();
+    let log_cpus = worker.log_num_threads();
     for ((a, omega), log_n) in coeffs.iter_mut().zip(omegas.iter()).zip(log_ns.iter()) {
         if *log_n <= log_cpus {
             fft_cpu::serial_fft::<E>(*a, omega, *log_n);
