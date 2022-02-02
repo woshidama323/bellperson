@@ -1,15 +1,15 @@
 use std::ops::AddAssign;
 use std::sync::{Arc, RwLock};
 
-use ec_gpu_gen::error::EcResult;
 use ec_gpu_gen::multiexp::MultiexpKernel;
 use ec_gpu_gen::multiexp_cpu::{multiexp_cpu, FullDensity};
+use ec_gpu_gen::rust_gpu_tools::Device;
 use ec_gpu_gen::threadpool::Worker;
+use ec_gpu_gen::EcResult;
 use ff::PrimeField;
 use group::{prime::PrimeCurveAffine, Group};
 use log::{error, info};
 use pairing::Engine;
-use rust_gpu_tools::Device;
 
 use crate::gpu::GpuEngine;
 

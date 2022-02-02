@@ -1,7 +1,7 @@
 use std::io;
 use std::marker::PhantomData;
 
-use ec_gpu_gen::error::EcError;
+use ec_gpu_gen::EcError;
 use ff::PrimeField;
 
 use crate::{gpu, Index, LinearCombination, Variable};

@@ -94,7 +94,7 @@ impl Drop for PriorityLock {
 use super::error::{GpuError, GpuResult};
 //use super::fft::FFTKernel;
 use ec_gpu_gen::fft::FftKernel;
-use rust_gpu_tools::Device;
+use ec_gpu_gen::rust_gpu_tools::Device;
 //use crate::gpu::GpuEngine;
 use ec_gpu::GpuEngine;
 use pairing::Engine;
