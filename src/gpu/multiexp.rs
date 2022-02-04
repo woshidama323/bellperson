@@ -27,7 +27,7 @@ pub fn get_cpu_utilization() -> f64 {
         .min(1f64)
 }
 
-// A Multiexp kernel that can share the workload between the GPU and the CPU.
+/// A Multiexp kernel that can share the workload between the GPU and the CPU.
 pub struct CpuGpuMultiexpKernel<'a, E>(MultiexpKernel<'a, E>)
 where
     E: Engine + GpuEngine;
@@ -36,13 +36,17 @@ impl<'a, E> CpuGpuMultiexpKernel<'a, E>
 where
     E: Engine + GpuEngine,
 {
+    /// Create new kernels, one for each given device.
     pub fn create(devices: &[&Device]) -> EcResult<Self> {
         info!("Multiexp: CPU utilization: {}.", get_cpu_utilization());
         let kernel = MultiexpKernel::create(devices)?;
         Ok(Self(kernel))
     }
 
-    // TODO vmx 2021-11-16: document `maybe_abort`
+    /// Create new kernels, one for each given device, with early abort hook.
+    ///
+    /// The `maybe_abort` function is called when it is possible to abort the computation, without
+    /// leaving the GPU in a weird state. If that function returns `true`, execution is aborted.
     pub fn create_with_abort(
         devices: &[&Device],
         maybe_abort: &'a (dyn Fn() -> bool + Send + Sync),
@@ -52,6 +56,7 @@ where
         Ok(Self(kernel))
     }
 
+    /// Calculate multiexp.
     pub fn multiexp<G>(
         &mut self,
         pool: &Worker,
