@@ -295,10 +295,7 @@ pub fn gpu_fft<E: Engine + gpu::GpuEngine>(
     omegas: &[E::Fr],
     log_ns: &[u32],
 ) -> gpu::GpuResult<()> {
-    // TODO vmx 2021-11-15: think about where errors should live, so that perhaps `Into::into` is
-    // not needed
-    kern.radix_fft_many(coeffs, omegas, log_ns)
-        .map_err(Into::into)
+    Ok(kern.radix_fft_many(coeffs, omegas, log_ns)?)
 }
 
 #[cfg(test)]
