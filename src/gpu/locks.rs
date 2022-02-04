@@ -104,10 +104,7 @@ use crate::gpu::CpuGpuMultiexpKernel;
 //use crate::domain::create_fft_kernel;
 //use crate::multiexp::create_multiexp_kernel;
 
-// TODO vmx 2021-11-15: Get rid of the log_d parameter
-// TODO vmx 2021-11-15: Think about how to enable the priority locking again
-//fn create_fft_kernel<E>(_log_d: usize, _priority: bool) -> Option<FftKernel<E>>
-fn create_fft_kernel<'a, E>(_log_d: usize, priority: bool) -> Option<FftKernel<'a, E>>
+fn create_fft_kernel<'a, E>(priority: bool) -> Option<FftKernel<'a, E>>
 where
     E: Engine + GpuEngine,
 {
@@ -135,10 +132,7 @@ where
     }
 }
 
-fn create_multiexp_kernel<'a, E>(
-    _log_d: usize,
-    priority: bool,
-) -> Option<CpuGpuMultiexpKernel<'a, E>>
+fn create_multiexp_kernel<'a, E>(priority: bool) -> Option<CpuGpuMultiexpKernel<'a, E>>
 where
     E: Engine + GpuEngine,
 {
@@ -171,7 +165,6 @@ macro_rules! locked_kernel {
         where
             E: pairing::Engine + ec_gpu::GpuEngine,
         {
-            log_d: usize,
             priority: bool,
             kernel: Option<$kern<'a, E>>,
             // There should always be only one thing running on the GPU, hence create a
@@ -183,9 +176,8 @@ macro_rules! locked_kernel {
         where
             E: pairing::Engine + ec_gpu::GpuEngine,
         {
-            pub fn new(log_d: usize, priority: bool) -> $class<'a, E> {
+            pub fn new(priority: bool) -> $class<'a, E> {
                 $class::<E> {
-                    log_d,
                     priority,
                     kernel: None,
                     gpu_lock: None,
@@ -197,7 +189,7 @@ macro_rules! locked_kernel {
                     PriorityLock::wait(self.priority);
                     info!("GPU is available for {}!", $name);
                     self.gpu_lock = Some(GPULock::lock());
-                    self.kernel = $func::<E>(self.log_d, self.priority);
+                    self.kernel = $func::<E>(self.priority);
                 }
             }
 
