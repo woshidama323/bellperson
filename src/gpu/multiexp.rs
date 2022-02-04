@@ -1,3 +1,4 @@
+use std::env;
 use std::ops::AddAssign;
 use std::sync::{Arc, RwLock};
 
@@ -14,7 +15,6 @@ use pairing::Engine;
 use crate::gpu::GpuEngine;
 
 pub fn get_cpu_utilization() -> f64 {
-    use std::env;
     env::var("BELLMAN_CPU_UTILIZATION")
         .map_or(0f64, |v| match v.parse() {
             Ok(val) => val,
@@ -25,6 +25,32 @@ pub fn get_cpu_utilization() -> f64 {
         })
         .max(0f64)
         .min(1f64)
+}
+
+/// Set the correct enviornment variables for a custom GPU.
+///
+/// Determining the number of cores was moved to rust-gpu-tools, which uses the
+/// `RUST_GPU_TOOLS_CUSTOM_GPU` environment variable to set custom GPUs. Users should upgrade
+/// using that one instead. Though using `BELLMAN_CUSTOM_GPU` is still supported for backwards
+/// compatibility, but will be ignored if `RUST_GPU_TOOLS_CUSTOM_GPU` is also set.
+/// Setting `RUST_GPU_TOOLS_CUSTOM_GPU` must happen before the first call to
+/// [`rust_gpu_tools::CUDA_CORES`], as it will be initialized only once for the lifetime of the
+/// library.
+fn set_custom_gpu_env_var() {
+    if let Ok(custom_gpu) = env::var("BELLMAN_CUSTOM_GPU") {
+        match env::var("RUST_GPU_TOOLS_CUSTOM_GPU") {
+            Ok(_) => {
+                info!("`BELLMAN_CUSTOM_GPU` was ignored as `RUST_GPU_TOOLS_CUSTOM_GPU` is set.");
+            }
+            Err(_) => {
+                info!(
+                    "Please use `RUST_GPU_TOOLS_CUSTOM_GPU` instead of `BELLMAN_CUSTOM_GPU`, \
+                     their values are fully compatible."
+                );
+                env::set_var("RUST_GPU_TOOLS_CUSTOM_GPU", custom_gpu)
+            }
+        }
+    }
 }
 
 /// A Multiexp kernel that can share the workload between the GPU and the CPU.
@@ -39,6 +65,7 @@ where
     /// Create new kernels, one for each given device.
     pub fn create(devices: &[&Device]) -> EcResult<Self> {
         info!("Multiexp: CPU utilization: {}.", get_cpu_utilization());
+        set_custom_gpu_env_var();
         let kernel = MultiexpKernel::create(devices)?;
         Ok(Self(kernel))
     }
@@ -52,6 +79,7 @@ where
         maybe_abort: &'a (dyn Fn() -> bool + Send + Sync),
     ) -> EcResult<Self> {
         info!("Multiexp: CPU utilization: {}.", get_cpu_utilization());
+        set_custom_gpu_env_var();
         let kernel = MultiexpKernel::create_with_abort(devices, maybe_abort)?;
         Ok(Self(kernel))
     }
@@ -106,5 +134,50 @@ where
 
         acc.add_assign(&cpu_acc.wait().unwrap());
         Ok(acc)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test if `RUST_GPU_TOOLS_CUSTOM_GPU` is set correctly if only `BELLMAN_CUSTOM_GPU` is set.
+    #[test]
+    fn belllman_custom_gpu_env_var() {
+        temp_env::with_vars(
+            vec![
+                ("BELLMAN_CUSTOM_GPU", Some("My custom GPU:3241")),
+                ("RUST_GPU_TOOLS_CUSTOM_GPU", None),
+            ],
+            || {
+                set_custom_gpu_env_var();
+                let rust_gpu_tools_custom_gpu = env::var("RUST_GPU_TOOLS_CUSTOM_GPU").expect(
+                    "RUST_GPU_TOOLS_CUSTOM_GPU is set after `set_custom_gpu_env_var` was called.",
+                );
+                assert_eq!(
+                    rust_gpu_tools_custom_gpu, "My custom GPU:3241",
+                    "`RUST_GPU_TOOLS_CUSTOM_GPU` has the value set by `BELLMAN_CUSTOM_GPU`."
+                );
+            },
+        )
+    }
+
+    /// Test if `BELLMAN_CUSTOM_GPU` is correctly ignored if `RUST_GPU_TOOLS_CUSTOM_GPU` is already
+    /// set.
+    #[test]
+    fn belllman_custom_gpu_env_var_ignored() {
+        temp_env::with_vars(
+            vec![
+                ("RUST_GPU_TOOLS_CUSTOM_GPU", Some("My custom GPU:444")),
+                ("BELLMAN_CUSTOM_GPU", Some("My custom GPU:3242")),
+            ],
+            || {
+                set_custom_gpu_env_var();
+                let rust_gpu_tools_custom_gpu = env::var("RUST_GPU_TOOLS_CUSTOM_GPU").expect(
+                    "RUST_GPU_TOOLS_CUSTOM_GPU is set after `set_custom_gpu_env_var` was called.",
+                );
+                assert_eq!(rust_gpu_tools_custom_gpu, "My custom GPU:444", "`RUST_GPU_TOOLS_CUSTOM_GPU` has its original value, as the value of `BELLMAN_CUSTOM_GPU` was correctly ignored,");
+            },
+        )
     }
 }
