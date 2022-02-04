@@ -1,7 +1,15 @@
-use fs2::FileExt;
-use log::{debug, info, warn};
 use std::fs::File;
 use std::path::PathBuf;
+
+use ec_gpu::GpuEngine;
+use ec_gpu_gen::fft::FftKernel;
+use ec_gpu_gen::rust_gpu_tools::Device;
+use fs2::FileExt;
+use log::{debug, info, warn};
+use pairing::Engine;
+
+use crate::gpu::error::{GpuError, GpuResult};
+use crate::gpu::CpuGpuMultiexpKernel;
 
 const GPU_LOCK_NAME: &str = "bellman.gpu.lock";
 const PRIORITY_LOCK_NAME: &str = "bellman.priority.lock";
@@ -91,25 +99,10 @@ impl Drop for PriorityLock {
     }
 }
 
-use super::error::{GpuError, GpuResult};
-//use super::fft::FFTKernel;
-use ec_gpu_gen::fft::FftKernel;
-use ec_gpu_gen::rust_gpu_tools::Device;
-//use crate::gpu::GpuEngine;
-use ec_gpu::GpuEngine;
-use pairing::Engine;
-//use super::multiexp::MultiexpKernel;
-//use ec_gpu_gen::multiexp::MultiexpKernel;
-use crate::gpu::CpuGpuMultiexpKernel;
-//use crate::domain::create_fft_kernel;
-//use crate::multiexp::create_multiexp_kernel;
-
 fn create_fft_kernel<'a, E>(priority: bool) -> Option<FftKernel<'a, E>>
 where
     E: Engine + GpuEngine,
 {
-    //let devices = Device::all().iter().map(|device| *device.clone()).collect::<Vec<_>>();
-    //let devices = Device::all().into_iter().map(|device| device.clone()).collect::<Vec<_>>();
     let devices = Device::all();
     let kernel = if priority {
         FftKernel::create_with_abort(&devices, &|| -> bool {
