@@ -40,7 +40,7 @@ where
     assert_eq!(input.len(), 512);
 
     Ok(
-        sha256_compression_function(&mut cs, &input, &get_sha256_iv())?
+        sha256_compression_function(&mut cs, input, &get_sha256_iv())?
             .into_iter()
             .flat_map(|e| e.into_bits_be())
             .collect(),
@@ -94,7 +94,7 @@ where
 
     let mut w = input
         .chunks(32)
-        .map(|e| UInt32::from_bits_be(e))
+        .map(UInt32::from_bits_be)
         .collect::<Vec<_>>();
 
     // We can save some constraints by combining some of
