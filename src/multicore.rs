@@ -10,6 +10,7 @@ use yastl::Pool;
 lazy_static! {
     static ref NUM_CPUS: usize = read_num_cpus();
     pub static ref THREAD_POOL: Pool = Pool::new(*NUM_CPUS);
+    pub static ref WINNING_POOL: Pool = Pool::new(*NUM_CPUS);
 }
 
 fn read_num_cpus() -> usize {
