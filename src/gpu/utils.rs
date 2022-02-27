@@ -73,7 +73,7 @@ pub fn get_core_count(name: &str) -> usize {
 }
 
 pub fn dump_device_list() {
-    for d in Device::all() {
+    for d in Device::get_suitable_device() {
         info!("Device: {:?}", d);
     }
 }

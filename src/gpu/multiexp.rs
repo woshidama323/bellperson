@@ -230,7 +230,7 @@ where
     pub fn create(priority: bool) -> GPUResult<MultiexpKernel<E>> {
         let lock = locks::GPULock::lock();
 
-        let kernels: Vec<_> = Device::by_uuid()
+        let kernels: Vec<_> = Device::get_suitable_device()
             .iter()
             .filter_map(|device| {
                 let kernel = SingleMultiexpKernel::<E>::create(device, priority);
