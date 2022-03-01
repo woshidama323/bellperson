@@ -28,6 +28,7 @@ where
 
 impl<E: Engine + GpuEngine> SingleFftKernel<E> {
     pub fn create(device: &Device, priority: bool) -> GPUResult<Self> {
+        info!("FFT, create from device {:?} ", device);
         let program = program::program::<E>(&device)?;
 
         Ok(SingleFftKernel {
